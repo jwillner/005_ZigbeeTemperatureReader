@@ -4,6 +4,8 @@ Zigbee-Temperatursensor auf Basis eines ESP32-C6, der die Vor- und
 Rücklauftemperatur eines Heizkörpers misst und als Zigbee End Device
 an Home Assistant meldet.
 
+Entwickelt von **JoWizard**.
+
 ## Funktionsweise
 
 - Zwei DS18B20-Temperaturfühler (wasserdicht, OneWire) werden am
