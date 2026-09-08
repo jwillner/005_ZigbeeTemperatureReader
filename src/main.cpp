@@ -2,8 +2,9 @@
 #include <Wire.h>
 #include <U8g2lib.h>
 
-#define TEMP_SENSOR_ENDPOINT 10
-#define BUTTON_PIN           9   // BOOT-Taster: lang druecken = Factory Reset
+#define TEMP_SENSOR_ENDPOINT_VORLAUF   10
+#define TEMP_SENSOR_ENDPOINT_RUECKLAUF 11
+#define BUTTON_PIN                     9   // BOOT-Taster: lang druecken = Factory Reset
 
 // OLED (JMD0.96D-1, SSD1306 128x64) ueber I2C. GPIO9 ist der BOOT-Taster,
 // GPIO4-8/15 sind Strapping-Pins und GPIO12/13 fuer USB reserviert,
@@ -11,7 +12,10 @@
 #define OLED_SDA_PIN 18
 #define OLED_SCL_PIN 19
 
-ZigbeeTempSensor zbTempSensor(TEMP_SENSOR_ENDPOINT);
+#define LED_PIN 8  // onboard WS2812-RGB-LED (ESP32-C6-Zero)
+
+ZigbeeTempSensor zbVorlauf(TEMP_SENSOR_ENDPOINT_VORLAUF);
+ZigbeeTempSensor zbRuecklauf(TEMP_SENSOR_ENDPOINT_RUECKLAUF);
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C display(U8G2_R0, U8X8_PIN_NONE);
 
 void showMessage(const char *line1, const char *line2 = nullptr) {
@@ -24,15 +28,20 @@ void showMessage(const char *line1, const char *line2 = nullptr) {
   display.sendBuffer();
 }
 
-void showTemperature(float temp) {
+void showTemperatures(float vorlauf, float ruecklauf) {
   char buf[16];
-  snprintf(buf, sizeof(buf), "%.1f C", temp);
 
   display.clearBuffer();
   display.setFont(u8g2_font_6x10_tf);
-  display.drawStr(0, 12, "Temperatur:");
-  display.setFont(u8g2_font_logisoso24_tf);
-  display.drawStr(0, 48, buf);
+
+  display.drawStr(0, 12, "Vorlauf:");
+  snprintf(buf, sizeof(buf), "%.1f C", vorlauf);
+  display.drawStr(70, 12, buf);
+
+  display.drawStr(0, 26, "Ruecklauf:");
+  snprintf(buf, sizeof(buf), "%.1f C", ruecklauf);
+  display.drawStr(70, 26, buf);
+
   display.sendBuffer();
 }
 
@@ -47,11 +56,16 @@ void setup() {
   display.begin();
   showMessage("Boot...");
 
-  zbTempSensor.setManufacturerAndModel("DIY", "TempReader");
-  zbTempSensor.setMinMaxValue(-40, 125);
-  zbTempSensor.setTolerance(0.5);
+  zbVorlauf.setManufacturerAndModel("DIY", "TempReader-Vorlauf");
+  zbVorlauf.setMinMaxValue(-40, 125);
+  zbVorlauf.setTolerance(0.5);
 
-  Zigbee.addEndpoint(&zbTempSensor);
+  zbRuecklauf.setManufacturerAndModel("DIY", "TempReader-Ruecklauf");
+  zbRuecklauf.setMinMaxValue(-40, 125);
+  zbRuecklauf.setTolerance(0.5);
+
+  Zigbee.addEndpoint(&zbVorlauf);
+  Zigbee.addEndpoint(&zbRuecklauf);
 
   if (!Zigbee.begin()) {
     Serial.println("Zigbee-Start fehlgeschlagen, Neustart...");
@@ -59,13 +73,18 @@ void setup() {
   }
 
   Serial.print("Verbinde mit Netzwerk");
+  bool ledOn = false;
   while (!Zigbee.connected()) {
     Serial.print(".");
+    ledOn = !ledOn;
+    rgbLedWrite(LED_PIN, ledOn ? 32 : 0, 0, 0);  // blinkend waehrend Verbindungsaufbau
     delay(100);
   }
+  rgbLedWrite(LED_PIN, 0, 0, 0);  // LED aus, sobald verbunden
   Serial.println(" ok");
 
-  zbTempSensor.setReporting(1, 0, 1.0);  // min 1 s, max 0 s, delta 1.0 C
+  zbVorlauf.setReporting(1, 0, 1.0);     // min 1 s, max 0 s, delta 1.0 C
+  zbRuecklauf.setReporting(1, 0, 1.0);
 }
 
 void loop() {
@@ -83,9 +102,14 @@ void loop() {
     }
   }
 
-  float temp = temperatureRead();  // interner Sensor als Platzhalter
-  zbTempSensor.setTemperature(temp);
-  Serial.printf("Temp: %.2f C\n", temp);
+  // DS18B20-Fühler noch nicht angeschlossen, daher feste Platzhalterwerte
+  float vorlauf = 45.0;
+  float ruecklauf = 35.0;
+
+  zbVorlauf.setTemperature(vorlauf);
+  zbRuecklauf.setTemperature(ruecklauf);
+  showTemperatures(vorlauf, ruecklauf);
+  Serial.printf("Vorlauf: %.2f C, Ruecklauf: %.2f C\n", vorlauf, ruecklauf);
 
   delay(1000);
 }

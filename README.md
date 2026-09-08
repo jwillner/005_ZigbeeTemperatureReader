@@ -18,6 +18,8 @@ an Home Assistant meldet.
 > Chip-Sensor als Platzhalter aus (ein Endpoint). Die Anbindung der
 > beiden DS18B20-Fühler für Vor- und Rücklauf ist der nächste Schritt.
 
+<img src="images/device_esp32-c6-oled.jpg" width="500" alt="Aufgebautes Gerät mit OLED-Anzeige von Vorlauf- und Rücklauftemperatur">
+
 ## Hardware
 
 <table>
