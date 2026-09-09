@@ -1,31 +1,32 @@
-# Zigbee2MQTT External Converter
+# Zigbee2MQTT: zwei Temperaturwerte in Home Assistant
 
-Ohne diesen Converter zeigt Zigbee2MQTT nur einen der beiden Temperaturwerte
-an, da mehrere Endpoints mit demselben Cluster-Typ standardmäßig nicht
-korrekt unterschieden werden ([bekanntes Z2M-Problem](https://github.com/Koenkk/zigbee2mqtt/issues/31172)).
+Kein External Converter nötig. Zigbee2MQTT erkennt das Gerät zwar als
+"nicht unterstützt" (kein passendes offizielles Geräteprofil), erzeugt aber
+automatisch eine "Automatically generated definition" und veröffentlicht
+darüber beide Endpoints sauber getrennt:
 
-## Installation (Home Assistant Add-on, ohne Dateisystemzugriff)
+```json
+{
+  "linkquality": 140,
+  "temperature_10": 23.8,
+  "temperature_11": 23.6
+}
+```
 
-1. Zigbee2MQTT-Oberfläche öffnen (Sidebar in Home Assistant → "Zigbee2MQTT").
-2. **Settings → Dev Console → External converters.**
-3. Neuen Converter anlegen, Name `zigbee_temperature_reader.mjs`, Inhalt aus
-   `external_converters/zigbee_temperature_reader.mjs` einfügen und speichern.
-   Wird sofort übernommen, kein Neustart nötig.
-4. Prüfen, dass in der Add-on-Konfiguration (configuration.yaml)
-   `advanced: enable_external_js: true` gesetzt ist (i. d. R. Standard).
-5. Gerät in Zigbee2MQTT entfernen und per Factory Reset (BOOT-Taster > 3 s
-   halten) erneut anlernen, damit beide Endpoints frisch erkannt werden.
-6. Prüfen, ob Zigbee2MQTT das Gerät als `ZigbeeTemperatureReader` erkennt.
-   Falls es weiterhin als "nicht unterstützt" gemeldet wird: den im
-   Z2M-Log/Frontend angezeigten `modelID` mit dem Wert in `zigbeeModel`
-   in der `.mjs`-Datei abgleichen und anpassen.
+`temperature_10` = Vorlauf (Endpoint 10), `temperature_11` = Ruecklauf
+(Endpoint 11), siehe `TEMP_SENSOR_ENDPOINT_VORLAUF`/`_RUECKLAUF` in
+`src/main.cpp`.
 
-### Alternative: Dateisystemzugriff (Standalone-Installation)
+## Home Assistant
 
-`external_converters/zigbee_temperature_reader.mjs` in das
-`external_converters`-Verzeichnis von Zigbee2MQTT kopieren
-(`<data_directory>/external_converters/`), danach wie oben ab Schritt 4
-fortfahren und Zigbee2MQTT neu starten.
+Zigbee2MQTT meldet für diese generische Definition automatisch zwei
+Home-Assistant-Entitäten per MQTT-Discovery an (`homeassistant/sensor/...`),
+es muss nichts manuell in Home Assistant angelegt werden. Die Entitäten
+tauchen unter dem Gerät mit generischem Namen auf und können in Home
+Assistant ganz normal umbenannt werden (Einstellungen → Entität bearbeiten).
 
-Nach erfolgreichem Setup erscheinen zwei getrennte Entitäten in Home
-Assistant mit eigenem Namen: **Vorlauf** und **Ruecklauf**.
+Falls die Entitäten nach dem Pairing nicht sofort auftauchen: In
+**MQTT Explorer** unter `zigbee2mqtt/<friendly_name>` prüfen, ob die Werte
+tatsächlich ankommen, und ggf. die **MQTT-Integration** in Home Assistant
+neu laden (Einstellungen → Geräte & Dienste → MQTT → Neu laden), damit die
+retained Discovery-Nachrichten neu verarbeitet werden.
