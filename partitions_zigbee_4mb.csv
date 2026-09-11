@@ -1,0 +1,9 @@
+# Name,     Type, SubType, Offset,  Size, Flags
+# Variante von partitions_zigbee_web.csv fuer Boards mit nur 4 MB Flash
+# (z.B. ESP32-C6-MINI-1). Keine OTA-Faehigkeit (nur eine App-Partition),
+# daher Flashen ausschliesslich per USB moeglich.
+nvs,        data, nvs,     0x9000,  0x5000,
+app0,       app,  factory, 0x10000, 0x300000,
+zb_storage, data, fat,     0x310000,0x4000,
+zb_fct,     data, fat,     0x314000,0x1000,
+coredump,   data, coredump,0x315000,0x10000,
